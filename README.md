@@ -3,7 +3,7 @@
 > 选中网页文字，右键或快捷键自动分屏打开小红书搜索，不跳转、不复制、不打断浏览。
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/bill-gx114/xhs-search-extension/main/cover.png?v=2" width="640" alt="小红书一键搜索" />
+  <img src="cover.png" width="640" alt="小红书一键搜索" />
 </p>
 
 ---
