@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "小红书一键搜索",
+  "version": "2.4.1",
+  "description": "选中文字，右键或快捷键自动分屏打开小红书搜索",
+  "permissions": ["contextMenus", "storage", "windows"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_title": "小红书一键搜索",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
