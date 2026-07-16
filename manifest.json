@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "小红书一键搜索",
-  "version": "2.4.1",
-  "description": "选中文字，右键或快捷键自动分屏打开小红书搜索",
+  "version": "2.6.0",
+  "description": "选中文字，右键或快捷键搜索小红书，支持分屏/悬浮小窗两种模式",
   "permissions": ["contextMenus", "storage", "windows"],
   "background": {
     "service_worker": "background.js"
