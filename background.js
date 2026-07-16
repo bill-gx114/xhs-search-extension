@@ -6,6 +6,28 @@ const MAX_HISTORY = 20;
 // 记录分屏状态：searchWindowId → { originalWindowId, originalWidth, originalHeight, originalLeft, originalTop }
 const splitStates = new Map();
 
+// 悬浮小窗默认尺寸
+const POPUP_WIN_WIDTH = 480;
+const POPUP_WIN_HEIGHT = 640;
+
+// 读取用户选择的搜索模式："split"（分屏，默认）| "popup"（悬浮小窗）
+function getSearchMode(callback) {
+  chrome.storage.local.get(["searchMode"], (result) => {
+    callback(result.searchMode || "split");
+  });
+}
+
+// 根据模式触发搜索
+function triggerSearch(keyword, windowId) {
+  getSearchMode((mode) => {
+    if (mode === "popup") {
+      openPopupWindow(keyword);
+    } else {
+      openSplitScreen(keyword, windowId);
+    }
+  });
+}
+
 // 创建右键菜单
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -55,14 +77,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (keyword && tab?.id) {
       saveHistory(keyword);
       chrome.tabs.sendMessage(tab.id, { action: "searchTriggered", keyword: keyword });
-      openSplitScreen(keyword, tab.windowId);
+      triggerSearch(keyword, tab.windowId);
     }
   } else if (info.menuItemId === "xhs-search-link") {
     const linkUrl = info.linkUrl || "";
     if (linkUrl && tab?.id) {
       saveHistory(linkUrl);
       chrome.tabs.sendMessage(tab.id, { action: "searchTriggered", keyword: linkUrl });
-      openSplitScreen(linkUrl, tab.windowId);
+      triggerSearch(linkUrl, tab.windowId);
     }
   }
 });
@@ -72,7 +94,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "search" && message.keyword) {
     saveHistory(message.keyword);
     chrome.windows.getLastFocused((win) => {
-      openSplitScreen(message.keyword, win.id);
+      triggerSearch(message.keyword, win.id);
     });
     sendResponse({ ok: true });
   } else if (message.action === "getHistory") {
@@ -91,9 +113,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (tabs[0]?.id) {
         chrome.tabs.sendMessage(tabs[0].id, { action: "searchTriggered", keyword: message.keyword });
       }
-      openSplitScreen(message.keyword, tabs[0]?.windowId);
+      triggerSearch(message.keyword, tabs[0]?.windowId);
     });
     sendResponse({ ok: true });
+  } else if (message.action === "getSearchMode") {
+    getSearchMode((mode) => sendResponse({ mode }));
+    return true;
+  } else if (message.action === "setSearchMode") {
+    chrome.storage.local.set({ searchMode: message.mode }, () => {
+      sendResponse({ ok: true });
+    });
+    return true;
   }
   return true;
 });
@@ -162,6 +192,41 @@ function openSplitScreen(keyword, windowId) {
         splitStates.set(newWin.id, originalState);
       }
     });
+  });
+}
+
+// 悬浮小窗模式：不改变主窗口尺寸，另开一个独立的小型悬浮窗口展示搜索结果
+function openPopupWindow(keyword) {
+  const url = XHS_SEARCH_URL + encodeURIComponent(keyword);
+
+  chrome.windows.getLastFocused((win) => {
+    // 小窗靠右侧展示，不遮挡主要内容区域
+    const width = POPUP_WIN_WIDTH;
+    const height = POPUP_WIN_HEIGHT;
+    let left = (win?.left || 0) + (win?.width || width + 100) - width - 40;
+    let top = (win?.top || 0) + 60;
+
+    if (left < 0) left = 40;
+
+    chrome.windows.create(
+      {
+        url: url,
+        type: "popup",
+        width: width,
+        height: height,
+        left: Math.round(left),
+        top: Math.round(top),
+        focused: true,
+      },
+      (newWin) => {
+        if (chrome.runtime.lastError) {
+          console.error("[XHS Search] 开悬浮小窗失败:", chrome.runtime.lastError.message);
+          chrome.tabs.create({ url: url });
+        } else {
+          console.log("[XHS Search] 悬浮小窗已打开, windowId:", newWin.id);
+        }
+      }
+    );
   });
 }
 
