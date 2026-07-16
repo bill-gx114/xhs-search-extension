@@ -5,6 +5,27 @@ const searchBtn = document.getElementById("searchBtn");
 const historyList = document.getElementById("historyList");
 const emptyState = document.getElementById("emptyState");
 const clearBtn = document.getElementById("clearBtn");
+const modeSplit = document.getElementById("modeSplit");
+const modePopup = document.getElementById("modePopup");
+
+// 初始化搜索模式选项卡片高亮
+function renderModeUI(mode) {
+  modeSplit.classList.toggle("active", mode === "split");
+  modePopup.classList.toggle("active", mode === "popup");
+}
+
+chrome.runtime.sendMessage({ action: "getSearchMode" }, (response) => {
+  renderModeUI(response?.mode || "split");
+});
+
+function setMode(mode) {
+  chrome.runtime.sendMessage({ action: "setSearchMode", mode: mode }, () => {
+    renderModeUI(mode);
+  });
+}
+
+modeSplit.addEventListener("click", () => setMode("split"));
+modePopup.addEventListener("click", () => setMode("popup"));
 
 // 搜索
 function doSearch(keyword) {
