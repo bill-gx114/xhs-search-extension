@@ -124,6 +124,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ ok: true });
     });
     return true;
+  } else if (message.action === "analyzeTrend") {
+    // 代发趋势分析请求到 Cowork 后端（background 有 host_permissions，绕过 CORS）
+    fetch("https://cowork.xiaohongshu.com/s/xhs-search/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keyword: message.keyword, notes: message.notes }),
+    })
+      .then(async (resp) => {
+        if (!resp.ok) {
+          const txt = await resp.text();
+          sendResponse({ ok: false, error: `服务错误 (${resp.status})` });
+          return;
+        }
+        const data = await resp.json();
+        sendResponse({ ok: true, data });
+      })
+      .catch((e) => {
+        sendResponse({ ok: false, error: e.message });
+      });
+    return true; // async
   }
   return true;
 });
