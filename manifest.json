@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "小红书一键搜索",
-  "version": "2.6.0",
-  "description": "选中文字，右键或快捷键搜索小红书，支持分屏/悬浮小窗两种模式",
+  "version": "2.7.0",
+  "description": "选中文字搜索小红书，支持分屏/悬浮小窗，搜索结果页可 AI 总结趋势",
   "permissions": ["contextMenus", "storage", "windows"],
+  "host_permissions": [
+    "https://cowork.xiaohongshu.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -13,6 +16,11 @@
       "js": ["content.js"],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": ["*://*.xiaohongshu.com/search_result*"],
+      "js": ["trend.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {
