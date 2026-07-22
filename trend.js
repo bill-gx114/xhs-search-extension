@@ -118,22 +118,25 @@ async function onAnalyze() {
   showPanel(`📈 正在分析「${keyword}」`, `<div style="text-align:center;padding:20px 0;"><div class="xhs-spinner"></div><div style="margin-top:12px;color:#999;">已抓取 ${notes.length} 条笔记，AI 总结中…</div></div>`);
 
   try {
-    const resp = await fetch(BACKEND_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keyword, notes }),
+    // 通过 background 代发请求（background 有 host_permissions，能绕过 CORS）
+    const data = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(
+        { action: "analyzeTrend", keyword, notes },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response && response.ok) {
+            resolve(response.data);
+          } else {
+            reject(new Error(response?.error || "未知错误"));
+          }
+        }
+      );
     });
 
-    if (!resp.ok) {
-      const err = await resp.text();
-      showPanel("⚠️ 分析失败", `服务返回错误 (${resp.status})：${escapeHtml(err.slice(0, 200))}`);
-      return;
-    }
-
-    const data = await resp.json();
     showPanel(`📈 「${data.keyword}」趋势总结`, renderMarkdown(data.summary), data.count);
   } catch (e) {
-    showPanel("⚠️ 网络错误", `无法连接分析服务：${escapeHtml(e.message)}`);
+    showPanel("⚠️ 分析失败", `无法完成分析：${escapeHtml(e.message)}`);
   }
 }
 
