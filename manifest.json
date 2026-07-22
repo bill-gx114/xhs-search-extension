@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "小红书一键搜索",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "description": "选中文字搜索小红书，支持分屏/悬浮小窗，搜索结果页可 AI 总结趋势",
   "permissions": ["contextMenus", "storage", "windows"],
   "host_permissions": [
