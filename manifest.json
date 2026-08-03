@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "小红书一键搜索",
-  "version": "2.8.0",
-  "description": "选中文字搜索小红书，支持分屏/悬浮小窗，搜索结果页可 AI 总结趋势",
+  "name": "红薯雷达",
+  "version": "2.9.0",
+  "description": "选中文字一键搜小红书，分屏/悬浮小窗自由切换，还能 AI 总结搜索趋势",
   "permissions": ["contextMenus", "storage", "windows"],
   "host_permissions": [
     "https://cowork.xiaohongshu.com/*"
@@ -24,7 +24,7 @@
     }
   ],
   "action": {
-    "default_title": "小红书一键搜索",
+    "default_title": "红薯雷达",
     "default_popup": "popup.html"
   },
   "icons": {
