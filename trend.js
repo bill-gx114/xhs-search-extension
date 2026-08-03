@@ -134,9 +134,9 @@ async function onAnalyze() {
       );
     });
 
-    showPanel(`📈 「${data.keyword}」趋势总结`, renderMarkdown(data.summary), data.count);
+    showPanel(`「${data.keyword}」趋势总结`, renderTrend(data.data), data.count);
   } catch (e) {
-    showPanel("⚠️ 分析失败", `无法完成分析：${escapeHtml(e.message)}`);
+    showPanel("⚠️ 分析失败", `<div style="color:#e05260;padding:8px 0;">无法完成分析：${escapeHtml(e.message)}</div>`);
   }
 }
 
@@ -170,15 +170,30 @@ function showPanel(title, contentHtml, count) {
       <div style="flex:1;color:white;font-size:15px;font-weight:700;line-height:1.3;">${escapeHtml(title)}<br>${countBadge}</div>
       <div id="xhs-trend-close" style="cursor:pointer;color:white;font-size:18px;padding:2px 6px;border-radius:6px;">✕</div>
     </div>
-    <div style="padding:16px 18px;overflow-y:auto;font-size:14px;line-height:1.7;color:#333;">${contentHtml}</div>
+    <div style="padding:14px 16px;overflow-y:auto;font-size:14px;line-height:1.6;color:#333;background:#faf9f9;">${contentHtml}</div>
     <style>
       .xhs-spinner { width:28px;height:28px;border:3px solid #eee;border-top-color:#FF2442;border-radius:50%;animation:xhs-spin 0.8s linear infinite;margin:0 auto; }
       @keyframes xhs-spin { to { transform: rotate(360deg); } }
-      #xhs-trend-panel h1,#xhs-trend-panel h2,#xhs-trend-panel h3 { font-size:15px;margin:12px 0 6px;color:#1a1a1a; }
-      #xhs-trend-panel ul { margin:6px 0 6px 18px; }
-      #xhs-trend-panel li { margin:3px 0; }
-      #xhs-trend-panel strong { color:#FF2442; }
-      #xhs-trend-panel p { margin:6px 0; }
+      /* 分区卡片 */
+      .xt-block { background:white;border-radius:12px;padding:12px 14px;margin-bottom:10px;border:1px solid #f0e6e8; }
+      .xt-block:last-child { margin-bottom:0; }
+      .xt-block-title { display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:10px; }
+      .xt-block-title .xt-ico { font-size:15px; }
+      /* 角度 / 套路条目 */
+      .xt-item { display:flex;gap:8px;margin-bottom:9px;align-items:flex-start; }
+      .xt-item:last-child { margin-bottom:0; }
+      .xt-item-name { flex-shrink:0;background:#fff0f2;color:#FF2442;font-size:12px;font-weight:600;padding:2px 9px;border-radius:6px;line-height:1.5;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis; }
+      .xt-item-desc { flex:1;font-size:12.5px;color:#555;line-height:1.55; }
+      /* 关键词分组 */
+      .xt-kw-group { margin-bottom:10px; }
+      .xt-kw-group:last-child { margin-bottom:0; }
+      .xt-kw-cat { font-size:11.5px;color:#999;margin-bottom:5px; }
+      .xt-tags { display:flex;flex-wrap:wrap;gap:6px; }
+      .xt-tag { background:#f4f4f5;color:#444;font-size:12px;padding:3px 10px;border-radius:20px;line-height:1.5; }
+      /* 建议高亮框 */
+      .xt-suggest { background:linear-gradient(135deg,#fff0f2,#ffe4e8);border-radius:12px;padding:13px 15px;border:1px solid #ffd0d8; }
+      .xt-suggest-label { font-size:12px;font-weight:700;color:#FF2442;margin-bottom:6px;display:flex;align-items:center;gap:5px; }
+      .xt-suggest-text { font-size:13px;color:#333;line-height:1.6; }
     </style>
   `;
 
@@ -186,19 +201,62 @@ function showPanel(title, contentHtml, count) {
   panel.querySelector("#xhs-trend-close").addEventListener("click", () => panel.remove());
 }
 
-// 极简 Markdown → HTML（够用即可）
-function renderMarkdown(md) {
-  let html = escapeHtml(md);
-  html = html
-    .replace(/^### (.*)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.*)$/gm, "<h1>$1</h1>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/^\s*[-*] (.*)$/gm, "<li>$1</li>")
-    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/\n/g, "<br>");
-  return `<p>${html}</p>`;
+// 结构化趋势数据 → 分区卡片 HTML
+function renderTrend(d) {
+  if (!d) return `<div style="color:#999;">无数据</div>`;
+
+  // 降级兵底：只有 suggestion 且其他为空（JSON 解析失败时）
+  const noStruct =
+    (!d.angles || !d.angles.length) &&
+    (!d.patterns || !d.patterns.length) &&
+    (!d.keywords || !d.keywords.length);
+  if (noStruct && d.suggestion) {
+    return `<div class="xt-block"><div style="font-size:13px;color:#555;line-height:1.7;white-space:pre-wrap;">${escapeHtml(d.suggestion)}</div></div>`;
+  }
+
+  let html = "";
+
+  // 【热门角度】
+  if (d.angles && d.angles.length) {
+    const items = d.angles
+      .map(
+        (a) =>
+          `<div class="xt-item"><span class="xt-item-name">${escapeHtml(a.name)}</span><span class="xt-item-desc">${escapeHtml(a.desc || "")}</span></div>`
+      )
+      .join("");
+    html += `<div class="xt-block"><div class="xt-block-title"><span class="xt-ico">🔥</span>热门角度</div>${items}</div>`;
+  }
+
+  // 【爆款共性】
+  if (d.patterns && d.patterns.length) {
+    const items = d.patterns
+      .map(
+        (p) =>
+          `<div class="xt-item"><span class="xt-item-name">${escapeHtml(p.name)}</span><span class="xt-item-desc">${escapeHtml(p.desc || "")}</span></div>`
+      )
+      .join("");
+    html += `<div class="xt-block"><div class="xt-block-title"><span class="xt-ico">✨</span>爆款共性</div>${items}</div>`;
+  }
+
+  // 【高频关键词】
+  if (d.keywords && d.keywords.length) {
+    const groups = d.keywords
+      .map((g) => {
+        const tags = (g.words || [])
+          .map((w) => `<span class="xt-tag">${escapeHtml(w)}</span>`)
+          .join("");
+        return `<div class="xt-kw-group"><div class="xt-kw-cat">${escapeHtml(g.category || "")}</div><div class="xt-tags">${tags}</div></div>`;
+      })
+      .join("");
+    html += `<div class="xt-block"><div class="xt-block-title"><span class="xt-ico">🏷️</span>高频关键词</div>${groups}</div>`;
+  }
+
+  // 【一句话建议】
+  if (d.suggestion) {
+    html += `<div class="xt-suggest"><div class="xt-suggest-label"><span>💡</span>一句话建议</div><div class="xt-suggest-text">${escapeHtml(d.suggestion)}</div></div>`;
+  }
+
+  return html || `<div style="color:#999;">暂无内容</div>`;
 }
 
 function escapeHtml(text) {
